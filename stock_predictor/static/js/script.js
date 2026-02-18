@@ -13,6 +13,20 @@ window.addEventListener('load', function() {
     loadPopularStocks();
 });
 
+// Scroll detection for footer
+window.addEventListener('scroll', function() {
+    const footer = document.querySelector('.footer');
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const documentHeight = document.documentElement.offsetHeight;
+    
+    // Show footer when user scrolls within 200px of the bottom
+    if (scrollPosition >= documentHeight - 200) {
+        footer.classList.add('visible');
+    } else {
+        footer.classList.remove('visible');
+    }
+});
+
 // Load popular stocks
 async function loadPopularStocks() {
     try {

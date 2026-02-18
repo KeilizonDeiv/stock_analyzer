@@ -1,5 +1,5 @@
 flask==3.0.0
-yfinance==0.2.32
+yfinance
 pandas
 numpy
 scikit-learn

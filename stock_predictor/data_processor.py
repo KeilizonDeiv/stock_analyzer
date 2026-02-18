@@ -46,41 +46,51 @@ class StockDataProcessor:
             raise ValueError("No data available. Fetch data first.")
         
         df = self.data.copy()
+        n_points = len(df)
+        
+        # Adjust window sizes based on available data
+        sma_50_window = min(50, max(5, n_points // 4))
+        sma_200_window = min(200, max(10, n_points // 2))
         
         # Moving Averages
-        df['SMA_20'] = df['Close'].rolling(window=20).mean()
-        df['SMA_50'] = df['Close'].rolling(window=50).mean()
-        df['SMA_200'] = df['Close'].rolling(window=200).mean()
-        df['EMA_12'] = df['Close'].ewm(span=12, adjust=False).mean()
-        df['EMA_26'] = df['Close'].ewm(span=26, adjust=False).mean()
+        df['SMA_20'] = df['Close'].rolling(window=min(20, n_points)).mean()
+        df['SMA_50'] = df['Close'].rolling(window=sma_50_window).mean()
+        df['SMA_200'] = df['Close'].rolling(window=sma_200_window).mean()
+        df['EMA_12'] = df['Close'].ewm(span=min(12, n_points), adjust=False).mean()
+        df['EMA_26'] = df['Close'].ewm(span=min(26, n_points), adjust=False).mean()
         
         # MACD (Moving Average Convergence Divergence)
         df['MACD'] = df['EMA_12'] - df['EMA_26']
-        df['Signal_Line'] = df['MACD'].ewm(span=9, adjust=False).mean()
+        df['Signal_Line'] = df['MACD'].ewm(span=min(9, n_points), adjust=False).mean()
         df['MACD_Histogram'] = df['MACD'] - df['Signal_Line']
         
         # RSI (Relative Strength Index)
+        rsi_window = min(14, max(3, n_points // 2))
         delta = df['Close'].diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+        gain = (delta.where(delta > 0, 0)).rolling(window=rsi_window).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(window=rsi_window).mean()
         rs = gain / loss
         df['RSI'] = 100 - (100 / (1 + rs))
         
         # Bollinger Bands
-        df['BB_Middle'] = df['Close'].rolling(window=20).mean()
-        bb_std = df['Close'].rolling(window=20).std()
+        bb_window = min(20, n_points)
+        df['BB_Middle'] = df['Close'].rolling(window=bb_window).mean()
+        bb_std = df['Close'].rolling(window=bb_window).std()
         df['BB_Upper'] = df['BB_Middle'] + (bb_std * 2)
         df['BB_Lower'] = df['BB_Middle'] - (bb_std * 2)
         
         # Volatility
         df['Daily_Return'] = df['Close'].pct_change()
-        df['Volatility'] = df['Daily_Return'].rolling(window=20).std()
+        df['Volatility'] = df['Daily_Return'].rolling(window=min(20, n_points)).std()
         
         # Volume indicators
-        df['Volume_SMA'] = df['Volume'].rolling(window=20).mean()
+        df['Volume_SMA'] = df['Volume'].rolling(window=min(20, n_points)).mean()
+        
+        # Fill NaN values with the first valid value or 0
+        df = df.bfill().fillna(0)
         
         self.data = df
-        print(f"✓ Added technical indicators")
+        print(f"✓ Added technical indicators (adjusted for {n_points} data points)")
         
         return df
     

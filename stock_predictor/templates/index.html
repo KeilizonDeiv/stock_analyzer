@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Prediction Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>📈 Stock Price Prediction Dashboard</h1>
+            <p class="subtitle">AI-Powered Time Series Forecasting & Technical Analysis</p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="card">
+            <h2>🔍 Stock Analysis</h2>
+            <div class="input-row">
+                <div class="input-group">
+                    <label for="tickerInput">Stock Ticker:</label>
+                    <input type="text" 
+                           id="tickerInput" 
+                           placeholder="e.g., AAPL, TSLA, MSFT" 
+                           value="AAPL">
+                </div>
+                
+                <div class="input-group">
+                    <label for="periodSelect">Time Period:</label>
+                    <select id="periodSelect">
+                        <option value="1y">1 Year</option>
+                        <option value="2y" selected>2 Years</option>
+                        <option value="5y">5 Years</option>
+                        <option value="max">Maximum</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <button class="btn btn-primary" onclick="analyzeStock()">
+                        Analyze Stock
+                    </button>
+                </div>
+            </div>
+            
+            <div class="popular-stocks" id="popularStocks"></div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div class="loading" id="loadingAnalysis" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing stock data...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error" id="errorMessage" style="display: none;"></div>
+
+        <!-- Statistics Cards -->
+        <div id="statsSection" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💵</div>
+                    <div class="stat-value" id="latestPrice">--</div>
+                    <div class="stat-label">Current Price</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value" id="totalReturn">--</div>
+                    <div class="stat-label">Total Return</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-value" id="highPrice">--</div>
+                    <div class="stat-label">52-Week High</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📉</div>
+                    <div class="stat-value" id="lowPrice">--</div>
+                    <div class="stat-label">52-Week Low</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-value" id="rsiValue">--</div>
+                    <div class="stat-label">RSI</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value" id="volatilityValue">--</div>
+                    <div class="stat-label">Volatility</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div id="chartsSection" style="display: none;">
+            <div class="card">
+                <h2>📊 Price Chart & Technical Indicators</h2>
+                <canvas id="priceChart"></canvas>
+            </div>
+            
+            <div class="card">
+                <h2>📉 RSI (Relative Strength Index)</h2>
+                <canvas id="rsiChart"></canvas>
+            </div>
+            
+            <div class="card">
+                <h2>📊 MACD (Moving Average Convergence Divergence)</h2>
+                <canvas id="macdChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Prediction Section -->
+        <div id="predictionSection" style="display: none;">
+            <div class="card">
+                <h2>🔮 Price Prediction</h2>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="predictionDays">Prediction Days:</label>
+                        <input type="number" 
+                               id="predictionDays" 
+                               value="30" 
+                               min="7" 
+                               max="90">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="modelSelect">Model:</label>
+                        <select id="modelSelect">
+                            <option value="random_forest" selected>Random Forest</option>
+                            <option value="gradient_boost">Gradient Boosting</option>
+                            <option value="linear">Linear Regression</option>
+                        </select>
+                    </div>
+                    
+                    <div class="input-group">
+                        <button class="btn btn-secondary" onclick="predictStock()">
+                            Generate Prediction
+                        </button>
+                        <button class="btn btn-outline" onclick="compareModels()">
+                            Compare Models
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="loading" id="loadingPrediction" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Training model and generating predictions...</p>
+                </div>
+            </div>
+
+            <!-- Prediction Results -->
+            <div id="predictionResults" style="display: none;">
+                <div class="stats-grid">
+                    <div class="stat-card prediction-stat">
+                        <div class="stat-label">Model Performance (RMSE)</div>
+                        <div class="stat-value" id="modelRMSE">--</div>
+                    </div>
+                    
+                    <div class="stat-card prediction-stat">
+                        <div class="stat-label">R² Score</div>
+                        <div class="stat-value" id="modelR2">--</div>
+                    </div>
+                    
+                    <div class="stat-card prediction-stat">
+                        <div class="stat-label">Predicted Trend</div>
+                        <div class="stat-value" id="predictedTrend">--</div>
+                    </div>
+                    
+                    <div class="stat-card prediction-stat">
+                        <div class="stat-label">Expected Change</div>
+                        <div class="stat-value" id="expectedChange">--</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2>🎯 Model Accuracy (Test Set)</h2>
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+                
+                <div class="card">
+                    <h2>🔮 Future Price Prediction</h2>
+                    <canvas id="predictionChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Model Comparison -->
+            <div id="comparisonResults" style="display: none;">
+                <div class="card">
+                    <h2>🏆 Model Comparison</h2>
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+                
+                <div class="card">
+                    <h2>📊 Performance Metrics</h2>
+                    <table id="metricsTable"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
